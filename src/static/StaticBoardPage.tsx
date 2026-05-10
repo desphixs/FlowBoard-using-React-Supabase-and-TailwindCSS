@@ -51,7 +51,7 @@ const StaticBoardPage: React.FC<StaticBoardPageProps> = ({ onSignOut }) => {
         }
     }, [tasks, loading]);
 
-    const handleAddTask = (title: string, description: string) => {
+    const handleAddTask = async (title: string, description: string) => {
         const newTask: Task = {
             id: Math.random().toString(36).substr(2, 9),
             user_id: "demo-user",
@@ -66,7 +66,7 @@ const StaticBoardPage: React.FC<StaticBoardPageProps> = ({ onSignOut }) => {
         toast.success("Task added successfully!");
     };
 
-    const handleMoveTask = (taskId: string, targetColumn: ColumnId, targetPosition?: number) => {
+    const handleMoveTask = async (taskId: string, targetColumn: ColumnId, targetPosition?: number) => {
         const taskToMove = tasks.find((t) => t.id === taskId);
         if (!taskToMove) return;
 
@@ -83,7 +83,7 @@ const StaticBoardPage: React.FC<StaticBoardPageProps> = ({ onSignOut }) => {
         setTasks(finalTasks);
     };
 
-    const handleDeleteTask = (taskId: string) => {
+    const handleDeleteTask = async (taskId: string) => {
         setTasks((prev) => prev.filter((t) => t.id !== taskId));
         toast.success("Task deleted");
     };
