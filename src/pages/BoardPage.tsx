@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 /* Accessing our custom auth hook to know which user is currently logged in */
 import { useAuth } from "../context/AuthContext";
-/* The Supabase client for database operations (Insert, Sign Out, etc.) */
+/* The Supabase client for database operations (Select, Insert, etc.) */
 import { supabase } from "../lib/supabase";
 /* LogOut icon for the sign-out button */
 import { LogOut } from "lucide-react";
@@ -31,9 +31,45 @@ const BoardPage = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
 
     /**
+     * EFFECT: Fetch Tasks
+     * This runs once when the component first loads (and whenever 'user' changes).
+     */
+    useEffect(() => {
+        /* Only fetch if we have a user logged in */
+        if (user) {
+            fetchTasks();
+        }
+    }, [user]);
+
+    /**
+     * fetchTasks:
+     * Pulls the user's tasks from the Supabase database.
+     */
+    const fetchTasks = async () => {
+        try {
+            /**
+             * .select("*"): Get all columns for each task.
+             * .eq("user_id", user?.id): Only get tasks that belong to THIS user.
+             * .order("position", { ascending: true }): Sort them by their position number.
+             */
+            const { data, error } = await supabase
+                .from("tasks")
+                .select("*")
+                .eq("user_id", user?.id)
+                .order("position", { ascending: true });
+
+            if (error) throw error;
+            
+            /* Update our local state with the data from the cloud */
+            setTasks(data || []);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to fetch tasks");
+        }
+    };
+
+    /**
      * handleSignOut:
      * Tells Supabase to end the current session.
-     * Our AuthProvider listener will notice this and redirect to login automatically.
      */
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -44,16 +80,9 @@ const BoardPage = () => {
      * Takes the title and description from the AddTaskForm and saves it to Supabase.
      */
     const handleAddTask = async (title: string, description: string) => {
-        /* Safety check: if there is no user logged in, we can't save a task to their ID */
         if (!user) return;
 
         try {
-            /**
-             * .from("tasks"): Select the "tasks" table in our database.
-             * .insert({...}): Create the new row.
-             * user_id: Bridges the task to the person who made it.
-             * position: We calculate the order by checking how many tasks are already in 'todo'.
-             */
             const { data, error } = await supabase
                 .from("tasks")
                 .insert({
@@ -61,18 +90,15 @@ const BoardPage = () => {
                     description,
                     user_id: user.id,
                     column: "todo" as ColumnId,
+                    /* We calculate the order by checking how many tasks are already in 'todo' */
                     position: tasks.filter((t) => t.column === "todo").length,
                 })
-                .select() // Request the newly created task back from the server
-                .single(); // We only added one row, so we want one object back
+                .select()
+                .single();
 
             if (error) throw error;
 
-            /**
-             * UI UPDATE:
-             * We add the new task (data) to our existing tasks array in state.
-             * This makes the task appear on screen instantly without a page refresh.
-             */
+            /* Add to our local state so it appears instantly */
             setTasks([...tasks, data]);
             toast.success("Task added successfully!");
         } catch (error: any) {
@@ -95,7 +121,6 @@ const BoardPage = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Display the user's name (extracted from email) and full email address */}
                     <div className="hidden sm:block text-right">
                         <p className="text-sm font-bold text-slate-900 leading-none">{user?.email?.split("@")[0]}</p>
                         <p className="text-xs font-medium text-slate-500 mt-1">{user?.email}</p>

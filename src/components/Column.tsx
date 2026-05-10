@@ -3,6 +3,8 @@ import React from "react";
 import type { Task, ColumnId } from "../types";
 /* A simple circle icon for the header decoration */
 import { Circle } from "lucide-react";
+/* Import the TaskCard component to display individual task details */
+import TaskCard from "./TaskCard";
 
 /**
  * PROPS DEFINITION:
@@ -50,11 +52,12 @@ const Column: React.FC<ColumnProps> = ({ title, tasks, children }) => {
                 ) : (
                     <div className="space-y-4">
                         {/* 
-                          PLACEHOLDER:
-                          In the next step of your project, you will likely map 
-                          over the 'tasks' array here to render individual <TaskCard /> components. 
+                          DYNAMIC LIST:
+                          We loop through our tasks array and create a <TaskCard /> for every task.
                         */}
-                        <p className="text-center text-slate-400 text-sm italic py-4">Cards loading...</p>
+                        {tasks.map((task) => (
+                            <TaskCard key={task.id} task={task} />
+                        ))}
                     </div>
                 )}
             </div>
