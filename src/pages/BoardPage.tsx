@@ -52,14 +52,10 @@ const BoardPage = () => {
              * .eq("user_id", user?.id): Only get tasks that belong to THIS user.
              * .order("position", { ascending: true }): Sort them by their position number.
              */
-            const { data, error } = await supabase
-                .from("tasks")
-                .select("*")
-                .eq("user_id", user?.id)
-                .order("position", { ascending: true });
+            const { data, error } = await supabase.from("tasks").select("*").eq("user_id", user?.id).order("position", { ascending: true });
 
             if (error) throw error;
-            
+
             /* Update our local state with the data from the cloud */
             setTasks(data || []);
         } catch (error: any) {
@@ -106,6 +102,51 @@ const BoardPage = () => {
         }
     };
 
+    /**
+     * handleMoveTask:
+     * Logic for when a card is dragged and dropped into a new column.
+     */
+    const handleMoveTask = async (taskId: string, targetColumn: ColumnId) => {
+        /**
+         * OPTIMISTIC UI UPDATE:
+         * Instead of waiting for the database to reply (which takes ~200ms),
+         * we update the local React state IMMEDIATELY.
+         * This makes the app feel "instant" to the user.
+         */
+        setTasks((prev) =>
+            prev.map((t) =>
+                /* Find the specific task that was moved and swap its 'column' property */
+                t.id === taskId ? { ...t, column: targetColumn } : t,
+            ),
+        );
+
+        try {
+            /**
+             * SYNC WITH DATABASE:
+             * Now we tell Supabase to actually save this change permanently.
+             * .update: the new column value.
+             * .eq: identifies exactly which row to change by its ID.
+             */
+            const { error } = await supabase.from("tasks").update({ column: targetColumn }).eq("id", taskId);
+
+            /* If the database says "No," we stop and jump to the catch block */
+            if (error) throw error;
+        } catch (error: any) {
+            /**
+             * ERROR RECOVERY:
+             * If the internet cuts out or the database fails, our "Optimistic Update"
+             * is now lying to the user (the UI shows the card moved, but it didn't).
+             */
+            toast.error("Failed to sync move to database");
+
+            /* 
+           We call fetchTasks() to re-download the real data from the server.
+           This "snaps" the card back to its original position, reflecting the truth.
+        */
+            fetchTasks();
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
             {/* The container that holds our popup notifications */}
@@ -147,6 +188,8 @@ const BoardPage = () => {
                             <Column
                                 title={col.title}
                                 columnId={col.id}
+                                /* Pass the move function down to the column */
+                                onDrop={handleMoveTask}
                                 /* We only pass tasks to this column if they match its ID (e.g., 'todo') */
                                 tasks={tasks.filter((t) => t.column === col.id)}
                             >
