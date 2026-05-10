@@ -5,17 +5,19 @@ import { createClient } from '@supabase/supabase-js'
  * Using 'import.meta.env' is the standard way to access secret keys in Vite.
  * VITE_SUPABASE_URL: The web address of your Supabase project.
  */
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 /**
- * VITE_SUPABASE_ANON_KEY: The public "anonymous" key that allows 
- * your app to interact with the database safely using Row Level Security (RLS).
+ * Check if Supabase is properly configured.
+ * This allows us to show a "Static Demo" version of the app if keys are missing.
  */
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+export const isSupabaseConfigured = 
+  Boolean(import.meta.env.VITE_SUPABASE_URL) && 
+  Boolean(import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 /**
  * Here we initialize the official Supabase client.
- * This 'supabase' object is what you will import in other files to 
- * perform actions like: supabase.from('table').select('*')
+ * If keys are missing, we pass empty strings to prevent the app from crashing.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl || 'http://localhost:54321', supabaseAnonKey || 'dummy')

@@ -1,10 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { isSupabaseConfigured } from './lib/supabase';
+import StaticApp from './static/StaticApp';
 import AuthPage from './pages/AuthPage';
 import BoardPage from './pages/BoardPage';
 
-const App = () => {
+/**
+ * RealApp:
+ * This is the full version of FlowBoard.
+ * It includes Authentication, Supabase database sync, and Protected Routes.
+ */
+const RealApp = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -28,6 +35,19 @@ const App = () => {
       </AuthProvider>
     </BrowserRouter>
   );
+};
+
+/**
+ * App Entry Point:
+ * We check if the environment variables for Supabase are present.
+ * If they are missing, we automatically switch to the "Static Demo" mode.
+ */
+const App = () => {
+  if (!isSupabaseConfigured) {
+    return <StaticApp />;
+  }
+
+  return <RealApp />;
 };
 
 export default App;
