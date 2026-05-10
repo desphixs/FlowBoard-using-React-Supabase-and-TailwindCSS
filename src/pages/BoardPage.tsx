@@ -1,6 +1,15 @@
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { LogOut } from 'lucide-react';
+import Column from '../components/Column';
+import type { ColumnId } from '../types';
+
+/* We define the columns as an array of objects. This makes it easy to map over them to render UI. */
+const COLUMNS: { title: string; id: ColumnId }[] = [
+  { title: 'To Do', id: 'todo' },
+  { title: 'In Progress', id: 'inprogress' },
+  { title: 'Done', id: 'done' },
+];
 
 const BoardPage = () => {
   const { user } = useAuth();
@@ -35,17 +44,22 @@ const BoardPage = () => {
         </div>
       </nav>
 
-      {/* Placeholder Board Content */}
-      <main className="p-6 sm:p-10">
-        <div className="mb-8">
+      {/* Kanban Board Container */}
+      <main className="p-6 sm:p-10 max-w-[1400px] mx-auto">
+        <div className="mb-10">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">My Workspace</h1>
-          <p className="text-slate-500 font-medium mt-2">Welcome to your dashboard. Your Kanban board will appear here soon.</p>
+          <p className="text-slate-500 font-medium mt-2">Manage your projects and keep track of your progress.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {['Todo', 'In Progress', 'Done'].map((col) => (
-            <div key={col} className="bg-slate-100/50 rounded-2xl p-4 border-2 border-dashed border-slate-200 min-h-[400px] flex items-center justify-center">
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{col} Column</p>
+        {/* Scrollable Container for Mobile */}
+        <div className="flex gap-6 overflow-x-auto pb-8 snap-x scrollbar-hide">
+          {COLUMNS.map((col) => (
+            <div key={col.id} className="flex-1 snap-center">
+              <Column 
+                title={col.title} 
+                columnId={col.id} 
+                tasks={[]} // Tasks will be fetched in Task 6
+              />
             </div>
           ))}
         </div>
