@@ -9,6 +9,7 @@ import TaskCard from "./TaskCard";
 /**
  * PROPS DEFINITION:
  * onDrop: A function from the parent (BoardPage) that updates the database.
+ * onDelete: A function from the parent (BoardPage) that deletes a task from the database.
  * columnId: The unique identifier for this column (e.g., 'todo', 'inprogress').
  */
 interface ColumnProps {
@@ -16,10 +17,11 @@ interface ColumnProps {
     columnId: ColumnId;
     tasks: Task[];
     onDrop: (taskId: string, targetColumn: ColumnId) => void;
+    onDelete: (taskId: string) => void;
     children?: React.ReactNode;
 }
 
-const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, children }) => {
+const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelete, children }) => {
     /* 
        This state tracks if a user is currently hovering a dragged item over THIS column.
        We use this to change the background color and give the user visual feedback.
@@ -98,13 +100,13 @@ const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, childre
                 {tasks.length === 0 ? (
                     /* Show this empty state box if no tasks exist in this column */
                     <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Empty</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nothing here yet</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {/* Map through the tasks and render a card for each one */}
                         {tasks.map((task) => (
-                            <TaskCard key={task.id} task={task} />
+                            <TaskCard key={task.id} task={task} onDelete={onDelete} />
                         ))}
                     </div>
                 )}

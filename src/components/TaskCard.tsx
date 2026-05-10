@@ -1,12 +1,15 @@
 import React from "react";
 /* Import Task type to ensure we have access to properties like id, title, and description */
 import type { Task } from "../types";
+/* Import X icon for the delete button */
+import { X } from "lucide-react";
 
 interface TaskCardProps {
     task: Task;
+    onDelete: (taskId: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
     /**
      * onDragStart:
      * This fires the moment the user clicks and starts pulling the card.
@@ -23,6 +26,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
         e.dataTransfer.effectAllowed = "move";
     };
 
+    /**
+     * handleDelete:
+     * Prevents the click from triggering anything else, and calls the delete function.
+     */
+    const handleDelete = (e: React.MouseEvent) => {
+        /* Stop the click from bubbling up (useful if the whole card was clickable) */
+        e.stopPropagation();
+        onDelete(task.id);
+    };
+
+    /* Format the Supabase timestamp into a readable date (e.g., "Oct 24, 2023") */
+    const formattedDate = new Date(task.created_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
+
     return (
         <div
             /* 
@@ -34,11 +54,26 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             /* 
                We use 'group' for hover effects and 'active' for when the user is 
                actually grabbing the card (scaling it down and rotating it slightly).
+               The 'relative' class allows us to absolutely position the delete button inside the card.
             */
-            className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-200 transition-all cursor-pointer group active:scale-95 active:rotate-2 active:cursor-grabbing"
+            className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-200 transition-all cursor-pointer group active:scale-95 active:rotate-2 active:cursor-grabbing relative"
         >
+            {/* 
+                DELETE BUTTON
+                It is absolutely positioned in the top right.
+                'opacity-0 group-hover:opacity-100' means it is invisible until you hover over the entire card.
+            */}
+            <button 
+                onClick={handleDelete}
+                className="absolute top-3 right-3 p-1.5 bg-red-50 text-red-500 rounded-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:bg-red-100"
+                title="Delete task"
+            >
+                <X className="w-3.5 h-3.5" />
+            </button>
+
             {/* Display the task title with a color shift on hover */}
-            <h3 className="font-bold text-slate-800 text-sm mb-1 group-hover:text-indigo-600 transition-colors">{task.title}</h3>
+            {/* pr-8 ensures the title text doesn't overlap with our absolutely positioned delete button */}
+            <h3 className="font-bold text-slate-800 text-sm mb-1 group-hover:text-indigo-600 transition-colors pr-8">{task.title}</h3>
 
             {/* 
                 Conditional Rendering: Only show the paragraph tag if a description actually exists. 
@@ -48,7 +83,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
 
             {/* CARD FOOTER Decoration */}
             <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Task Details</span>
+                {/* We now show the formatted date instead of static text */}
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formattedDate}</span>
             </div>
         </div>
     );
