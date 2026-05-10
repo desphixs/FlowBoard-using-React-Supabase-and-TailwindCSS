@@ -106,41 +106,53 @@ const BoardPage = () => {
      * handleMoveTask:
      * Logic for when a card is dragged and dropped into a new column.
      */
-    const handleMoveTask = async (taskId: string, targetColumn: ColumnId) => {
+    const handleMoveTask = async (taskId: string, targetColumn: ColumnId, targetPosition?: number) => {
+        /* Find the task we are moving */
+        const taskToMove = tasks.find((t) => t.id === taskId);
+        if (!taskToMove) return;
+
         /**
          * OPTIMISTIC UI UPDATE:
-         * Instead of waiting for the database to reply,
-         * we update the local React state IMMEDIATELY.
+         * We calculate the new order locally and update the state immediately.
          */
-        setTasks((prev) =>
-            prev.map((t) =>
-                /* Find the specific task that was moved and swap its 'column' property */
-                t.id === taskId ? { ...t, column: targetColumn } : t,
-            ),
-        );
+        const otherTasks = tasks.filter((t) => t.id !== taskId);
+        
+        /* Filter tasks that are already in the target column */
+        const columnTasks = otherTasks.filter((t) => t.column === targetColumn);
+        
+        /* Sort them by position to be safe */
+        columnTasks.sort((a, b) => a.position - b.position);
+
+        /* If no position was specified, we put it at the end of the column */
+        const newPosition = targetPosition !== undefined ? targetPosition : columnTasks.length;
+
+        /* Insert the task at the new position */
+        columnTasks.splice(newPosition, 0, { ...taskToMove, column: targetColumn });
+
+        /* Re-assign position numbers 0, 1, 2... to everything in that column */
+        const updatedColumnTasks = columnTasks.map((t, index) => ({ ...t, position: index }));
+
+        /* Combine with tasks from other columns */
+        const finalTasks = [...otherTasks.filter((t) => t.column !== targetColumn), ...updatedColumnTasks];
+
+        setTasks(finalTasks);
 
         try {
             /**
              * SYNC WITH DATABASE:
-             * Now we tell Supabase to actually save this change permanently.
-             * .update: the new column value.
-             * .eq: identifies exactly which row to change by its ID.
+             * We tell Supabase to update the column and position.
              */
-            const { error } = await supabase.from("tasks").update({ column: targetColumn }).eq("id", taskId);
+            const { error } = await supabase
+                .from("tasks")
+                .update({ 
+                    column: targetColumn,
+                    position: newPosition 
+                })
+                .eq("id", taskId);
 
             if (error) throw error;
         } catch (error: any) {
-            /**
-             * ERROR RECOVERY:
-             * If the internet cuts out or the database fails, our "Optimistic Update"
-             * is now lying to the user (the UI shows the card moved, but it didn't).
-             */
             toast.error("Failed to sync move to database");
-
-            /* 
-           We call fetchTasks() to re-download the real data from the server.
-           This "snaps" the card back to its original position, reflecting the truth.
-        */
             fetchTasks();
         }
     };
@@ -166,6 +178,17 @@ const BoardPage = () => {
         }
     };
 
+    /**
+     * handleReorderTask:
+     * Logic for when a card is dropped directly onto another card.
+     */
+    const handleReorderTask = (draggedTaskId: string, targetTaskId: string) => {
+        const targetTask = tasks.find((t) => t.id === targetTaskId);
+        if (!targetTask) return;
+
+        /* Move the task to the exact position of the task it was dropped on */
+        handleMoveTask(draggedTaskId, targetTask.column, targetTask.position);
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -222,6 +245,8 @@ const BoardPage = () => {
                                     onDrop={handleMoveTask}
                                     /* Pass the delete function down to the column */
                                     onDelete={handleDeleteTask}
+                                    /* Pass the reorder function down to the column */
+                                    onDropOnCard={handleReorderTask}
                                     /* We only pass tasks to this column if they match its ID (e.g., 'todo') */
                                     tasks={tasks.filter((t) => t.column === col.id)}
                                 >
@@ -236,5 +261,6 @@ const BoardPage = () => {
         </div>
     );
 };
+
 
 export default BoardPage;

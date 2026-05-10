@@ -18,10 +18,12 @@ interface ColumnProps {
     tasks: Task[];
     onDrop: (taskId: string, targetColumn: ColumnId) => void;
     onDelete: (taskId: string) => void;
+    /* NEW: Function to handle when a task is dropped directly on another task */
+    onDropOnCard: (taskId: string, targetTaskId: string) => void;
     children?: React.ReactNode;
 }
 
-const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelete, children }) => {
+const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelete, onDropOnCard, children }) => {
     /* 
        This state tracks if a user is currently hovering a dragged item over THIS column.
        We use this to change the background color and give the user visual feedback.
@@ -71,6 +73,15 @@ const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelet
         onDrop(taskId, columnId);
     };
 
+    /**
+     * handleDropOnCard:
+     * This is called when TaskCard detects a drop event.
+     */
+    const handleDropOnCard = (draggedTaskId: string, targetTaskId: string) => {
+        /* Just pass it up to the parent */
+        onDropOnCard(draggedTaskId, targetTaskId);
+    };
+
     return (
         <div
             /* Attach the drag-and-drop event listeners to the main container */
@@ -106,7 +117,12 @@ const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelet
                     <div className="space-y-4">
                         {/* Map through the tasks and render a card for each one */}
                         {tasks.map((task) => (
-                            <TaskCard key={task.id} task={task} onDelete={onDelete} />
+                            <TaskCard 
+                                key={task.id} 
+                                task={task} 
+                                onDelete={onDelete} 
+                                onDrop={handleDropOnCard}
+                            />
                         ))}
                     </div>
                 )}
@@ -114,5 +130,6 @@ const Column: React.FC<ColumnProps> = ({ title, columnId, tasks, onDrop, onDelet
         </div>
     );
 };
+
 
 export default Column;

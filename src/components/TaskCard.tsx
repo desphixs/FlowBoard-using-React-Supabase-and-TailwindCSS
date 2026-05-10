@@ -7,9 +7,11 @@ import { X } from "lucide-react";
 interface TaskCardProps {
     task: Task;
     onDelete: (taskId: string) => void;
+    /* NEW: Function to handle when another task is dropped ONTO this task */
+    onDrop: (draggedTaskId: string, targetTaskId: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete, onDrop }) => {
     /**
      * onDragStart:
      * This fires the moment the user clicks and starts pulling the card.
@@ -24,6 +26,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
 
         /* Tells the browser cursor to show the "move" icon instead of "copy" or "link" */
         e.dataTransfer.effectAllowed = "move";
+    };
+
+    /**
+     * handleCardDrop:
+     * This fires if a card is dropped directly onto THIS card.
+     */
+    const handleCardDrop = (e: React.DragEvent) => {
+        /* Stop the column from also catching this drop event */
+        e.stopPropagation();
+        e.preventDefault();
+
+        const draggedTaskId = e.dataTransfer.getData("taskId");
+        
+        /* If we dropped a card on ITSELF, do nothing */
+        if (draggedTaskId === task.id) return;
+
+        /* Call the callback to tell the parent to reorder */
+        onDrop(draggedTaskId, task.id);
     };
 
     /**
@@ -51,6 +71,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
             */
             draggable
             onDragStart={onDragStart}
+            /* Add drop handling to the card itself to enable vertical reordering */
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleCardDrop}
             /* 
                We use 'group' for hover effects and 'active' for when the user is 
                actually grabbing the card (scaling it down and rotating it slightly).
@@ -61,7 +84,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
             {/* 
                 DELETE BUTTON
                 It is absolutely positioned in the top right.
-                'opacity-0 group-hover:opacity-100' means it is invisible until you hover over the entire card.
+                'opacity-100': Visible by default (great for mobile touch screens).
+                'lg:opacity-0': Hidden on large desktop screens.
+                'lg:group-hover:opacity-100': Revealed on desktop only when hovering the card.
             */}
             <button 
                 onClick={handleDelete}
